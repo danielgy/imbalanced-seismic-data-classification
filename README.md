@@ -1,1 +1,1 @@
-# imbalanced-seismic-data-classification-
+# imbalanced-seismic-data-classification
