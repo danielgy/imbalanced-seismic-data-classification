@@ -1,11 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# @Time    : 2017/7/18 15:37
-# @Author  : Zoe
-# @Site    : 
-# @File    : model.py
-# @Software: PyCharm Community Edition
-
 import tensorflow as tf
 from tensorflow.contrib import rnn
 import functools
