@@ -1,10 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# @Time    : 2017/8/10 17:41
-# @Author  : Zoe
-# @Site    : 
-# @File    : data_pre.py
-# @Software: PyCharm Community Edition
 import numpy as np
 import pandas as pd
 
