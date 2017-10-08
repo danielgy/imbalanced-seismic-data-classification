@@ -5,6 +5,6 @@
 - [model.py](https://github.com/danielgy/imbalanced-seismic-data-classification-/blob/master/model.py)
 - [feature combined.ipynb](https://github.com/danielgy/imbalanced-seismic-data-classification-/blob/master/feature%20combined.ipynb)
 - [MLP.py](https://github.com/danielgy/imbalanced-seismic-data-classification-/blob/master/MLP.py): Multilayer Perceptron model
-- [classify_train.py](https://github.com/danielgy/imbalanced-seismic-data-classification-/blob/master/classify_train.py): train and test the classifer with the processed and filed data sets. For rebalance the training samples, [SMOTE(Synthetic Minority Over-sampling Technique)](https://www.jair.org/media/953/live-953-2037-jair.pdf) was applied and 10-fold cross validation was used during the training 
-period. 
 - [CNN_series.py](https://github.com/danielgy/imbalanced-seismic-data-classification/blob/master/CNN_series.py): Convolutional Neural Networks as the classifer.
+- [classifier_train.py](https://github.com/danielgy/imbalanced-seismic-data-classification-/blob/master/classify_train.py): train and test the classifer with the processed and filed data sets. For rebalance the training samples, [SMOTE(Synthetic Minority Over-sampling Technique)](https://www.jair.org/media/953/live-953-2037-jair.pdf) was applied and 10-fold cross validation was used during the training 
+period. Change the "NET", such as MLP or CNN_series, can use different model to do the imbalanced data classification. 
