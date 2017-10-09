@@ -9,4 +9,3 @@
 - [FCN.py](https://github.com/danielgy/imbalanced-seismic-data-classification/blob/master/FCN.py): Fully Convolutional Neural Network as the classifer.
 - [classifier_train.py](https://github.com/danielgy/imbalanced-seismic-data-classification-/blob/master/classify_train.py): train and test the classifer with the processed and filed data sets. For rebalance the training samples, [SMOTE(Synthetic Minority Over-sampling Technique)](https://www.jair.org/media/953/live-953-2037-jair.pdf) was applied and 10-fold cross validation was used during the training 
 period. Change the "NET", such as MLP, CNN_series or FCN, you can use different models to do the imbalanced data classification. The messures are confusion matrix, ROC AUC, G-mean, F1 score and so on. 
-
