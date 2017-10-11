@@ -1,14 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# @Time : 8/8/17 PM10:37
-# @Author : Zoe
-# @Site : 
-# @File : CNN_series.py
-# @Software: PyCharm Community Edition
-
 import tensorflow as tf
-
 
 NUM_CHANNELS=1
 # NUM_LABELS=10
