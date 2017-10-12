@@ -1,12 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# @Time : 8/8/17 PM10:37
-# @Author : Zoe
-# @Site : 
-# @File : CNN_series.py
-# @Software: PyCharm Community Edition
-
 import tensorflow as tf
 from tensorflow.contrib import rnn
 from tensorflow.python.training.moving_averages import assign_moving_average
