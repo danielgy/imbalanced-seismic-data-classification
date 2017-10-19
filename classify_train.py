@@ -24,7 +24,7 @@ OUTPUT_NODE = 1
 IMAGE_SIZE1 = 1
 # IMAGE_SIZE2 = 1222
 
-BATCH_SIZE = 128
+BATCH_SIZE = 512
 TRANING_STEPS = 20000
 
 model_dir = "saver"
@@ -60,7 +60,7 @@ def model_train(train, valid, pos_weight,IMAGE_SIZE2):
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            train_step = tf.train.AdamOptimizer(0.00005).minimize(loss, global_step=global_step)
+            train_step = tf.train.AdamOptimizer(0.001).minimize(loss, global_step=global_step)
 
         with tf.control_dependencies([train_step]):
             train_op = tf.no_op(name='train')
@@ -76,16 +76,25 @@ def model_train(train, valid, pos_weight,IMAGE_SIZE2):
                                               IMAGE_SIZE1,
                                               IMAGE_SIZE2,
                                               NET.NUM_CHANNELS])
+
                 reshaped_ys = np.reshape(ys, [BATCH_SIZE, OUTPUT_NODE])
 
                 _, loss_value, step = sess.run([train_op, loss, global_step],
                                                feed_dict={x: reshaped_xs, y_: reshaped_ys, phase: 1})
-                if i % 5000 == 0:
-                    train_accuracy,logit = sess.run([accuracy, y], feed_dict={x: reshaped_xs, y_: reshaped_ys, phase: 1})
+                if i % 2000 == 0:
+                    train_accuracy,train_logit = sess.run([accuracy, y], feed_dict={x: reshaped_xs, y_: reshaped_ys, phase: 1})
+                    # print(logit)
+                    print('batch samples: {}'.format(Counter(ys)))
                     print ("After %d training steps, loss %g, training accuracy %g" % (step, loss_value, train_accuracy))
             #                    a=logit.reshape([1, -1]) > 0.5
             #                    a.astype("int")
             #                    print (roc_auc_score(a.reshape(128), np.array(ys)))
+                    a = train_logit.reshape([1, -1]) > Th
+                    a = a.astype("int")
+                    train_predict = a.reshape(-1)
+                    cm = np.array(confusion_matrix(ys, train_predict))
+                    tn, fn, fp, tp = cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1]
+                    print('cm[[tn  fn] [fp tp]]:', [[tn, fn], [fp, tp]])
 
 
             test_xs = np.reshape(valid.images, [-1,
@@ -111,16 +120,22 @@ def model_train(train, valid, pos_weight,IMAGE_SIZE2):
             data_vis.plot_confusion_matrix(cnf_matrix1, classes=target_names,
                                            title='Confusion matrix')
             # TODO: plot the ROC Curves and AUC Score
-            fpr, tpr, _ = roc_curve(valid.labels, test_predict, pos_label=1)
+            fpr, tpr, _ = roc_curve(valid.labels, test_logit, pos_label=1, drop_intermediate=True)
             auc_score = auc(fpr, tpr)
             fs = f1_score(valid.labels, test_predict)
+
             G_mean = np.sqrt(np.mean(tpr) * np.mean(fpr))
             data_vis.plot_roc_curve(fpr, tpr, auc_score)
             # TODO: plot Precision and Recall Curves
-            precision, recall, _ = precision_recall_curve(valid.labels, test_predict, pos_label=1)
+            precision, recall, _ = precision_recall_curve(valid.labels, test_logit, pos_label=1)
             auc_score_1 = auc(recall, precision)
             r = recall_score(valid.labels, test_predict)
+
+#            r = tpr
             p = precision_score(valid.labels, test_predict)
+
+#            p = recall_score(valid.labels, test_predict)
+#            G_mean = np.sqrt(r*p)             
             data_vis.plot_precision_recall_curve(recall, precision, auc_score_1)
 
             print("ROC AUC : %.10f" % auc_score)
@@ -158,13 +173,13 @@ def model_train(train, valid, pos_weight,IMAGE_SIZE2):
             data_vis.plot_confusion_matrix(cnf_matrix2, classes=target_names,
                                            title='TEST Confusion matrix')
             # TODO: plot the ROC Curves and AUC Score
-            fpr1, tpr1, _ = roc_curve(Y_test, t_predict, pos_label=1)
+            fpr1, tpr1, _ = roc_curve(Y_test, t_logit, pos_label=1)
             auc_score1 = auc(fpr1, tpr1)
             fs1 = f1_score(Y_test, t_predict)
             G_mean1 = np.sqrt(np.mean(tpr1) * np.mean(fpr1))
             data_vis.plot_roc_curve(fpr1, tpr1, auc_score1)
             # TODO: plot Precision and Recall Curves
-            precision1, recall1, _ = precision_recall_curve(Y_test, t_predict, pos_label=1)
+            precision1, recall1, _ = precision_recall_curve(Y_test, t_logit, pos_label=1)
             auc_score_11 = auc(recall1, precision1)
             r1 = recall_score(Y_test, t_predict)
             p1 = precision_score(Y_test, t_predict)
@@ -202,7 +217,7 @@ if __name__ == "__main__":
         cv = cv + 1
         print("{} cross validation!".format(cv))
         X, y = np.array(data[train]), np.array(label[train])
-        ada = SMOTE(random_state=42)
+        ada = SMOTE(kind='svm',random_state=42)
         X_res, y_res = ada.fit_sample(X, y)
         print('Resampled dataset shape {}'.format(Counter(y_res)))
         train_input = data_preprocess.DataSet(np.array(X_res), np.array(y_res))
