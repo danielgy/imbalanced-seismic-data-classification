@@ -1,17 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu May 31 18:52:57 2018
+@author: GY
+"""
 import h5py
-import tensorflow as tf
-import CNN_series
-import LSTM_FCN
-import FCN
-import res_net
-import MLP
-import data_preprocess
-import data_pre
-import data_vis
 import os
 import time
-import classify_eval
 import numpy as np
+import tensorflow as tf
+from collections import Counter
 from sklearn.metrics import roc_auc_score, confusion_matrix, auc, roc_curve, precision_recall_curve, f1_score, \
     recall_score, precision_score
 from sklearn.model_selection import StratifiedKFold, KFold
@@ -20,17 +17,26 @@ from imblearn.under_sampling import RandomUnderSampler,ClusterCentroids,Instance
 EditedNearestNeighbours,RepeatedEditedNearestNeighbours,AllKNN,OneSidedSelection,CondensedNearestNeighbour,NeighbourhoodCleaningRule
 from imblearn.combine import SMOTEENN,SMOTETomek
 from imblearn.ensemble import EasyEnsemble,BalancedBaggingClassifier,BalanceCascade
-from collections import Counter
+import CNN_series
+import LSTM_FCN
+import FCN
+import res_net
+import MLP
+import data_preprocess
+import data_pre
+import data_vis
+import classify_eval
 
+
+# Hyper-parameter
 NET = MLP
 Th = 0.5
 OUTPUT_NODE = 1
-IMAGE_SIZE1 = 1
-# IMAGE_SIZE2 = 1222
-
+LENGTH = 1
 BATCH_SIZE = 512
 TRANING_STEPS = 20000
 
+# Define saver
 model_dir = "saver"
 if not os.path.exists(model_dir):
     os.mkdir(model_dir)
@@ -38,31 +44,34 @@ if not os.path.exists(model_dir):
 MODEL_SAVE_PATH = model_dir
 MODEL_NAME = "model.ckpt"
 
+# GPU config
 config = tf.ConfigProto(allow_soft_placement=True)
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
 config.gpu_options.allow_growth = True
 
-def model_train(train, valid, pos_weight,IMAGE_SIZE2):
+
+def model_train(train, valid, pos_weight, WIDTH):
     with tf.Graph().as_default():
         x = tf.placeholder(tf.float32, [None,
-                                        IMAGE_SIZE1,
-                                        IMAGE_SIZE2,
+                                        LENGTH,
+                                        WIDTH,
                                         NET.NUM_CHANNELS],
                            name='x-input')
 
         y_ = tf.placeholder(tf.float32, [None, OUTPUT_NODE], name='y-input')
         phase = tf.placeholder(tf.bool, name='phase')
-        logit, y = NET.model(x, phase, IMAGE_SIZE2)
+        logit, y = NET.model(x, phase, WIDTH)
 
         global_step = tf.Variable(0, trainable=False)
-
+        # loss
         cross_entropy = tf.nn.weighted_cross_entropy_with_logits(logits=logit, targets=y_, pos_weight=pos_weight)
-        # cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(logits=y, labels=y_)
         cross_entropy_mean = tf.reduce_mean(cross_entropy)
         loss = cross_entropy_mean
+        # accuracy
         correct_prediction = tf.equal(tf.greater(y, Th), tf.greater(y_, Th))
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        # optimizer
         with tf.control_dependencies(update_ops):
             train_step = tf.train.AdamOptimizer(0.001).minimize(loss, global_step=global_step)
 
@@ -71,26 +80,25 @@ def model_train(train, valid, pos_weight,IMAGE_SIZE2):
 
         saver = tf.train.Saver()
 
-
         with tf.Session(config=config) as sess:
             tf.global_variables_initializer().run()
             for i in range(TRANING_STEPS):
                 xs, ys = train.next_batch(BATCH_SIZE)
                 reshaped_xs = np.reshape(xs, [BATCH_SIZE,
-                                              IMAGE_SIZE1,
-                                              IMAGE_SIZE2,
+                                              LENGTH,
+                                              WIDTH,
                                               NET.NUM_CHANNELS])
                 reshaped_ys = np.reshape(ys, [BATCH_SIZE, OUTPUT_NODE])
 
                 _, loss_value, step = sess.run([train_op, loss, global_step],
                                                feed_dict={x: reshaped_xs, y_: reshaped_ys, phase: 1})
                 if i % 2000 == 0:
-                    train_accuracy,train_logit = sess.run([accuracy, y], feed_dict={x: reshaped_xs, y_: reshaped_ys, phase: 1})
+                    train_accuracy, train_logit = sess.run([accuracy, y], feed_dict={x: reshaped_xs,
+                                                                                     y_: reshaped_ys,
+                                                                                     phase: 1})
                     print('batch samples: {}'.format(Counter(ys)))
-                    print ("After %d training steps, loss %g, training accuracy %g" % (step, loss_value, train_accuracy))
-            #                    a=logit.reshape([1, -1]) > 0.5
-            #                    a.astype("int")
-            #                    print (roc_auc_score(a.reshape(128), np.array(ys)))
+                    print("After %d training steps, loss %g, training accuracy %g" % (step, loss_value, train_accuracy))
+
                     a = train_logit.reshape([1, -1]) > Th
                     a = a.astype("int")
                     train_predict = a.reshape(-1)
@@ -98,10 +106,9 @@ def model_train(train, valid, pos_weight,IMAGE_SIZE2):
                     tn, fn, fp, tp = cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1]
                     print('cm[[tn  fn] [fp tp]]:', [[tn, fn], [fp, tp]])
 
-
             test_xs = np.reshape(valid.images, [-1,
-                                                IMAGE_SIZE1,
-                                                IMAGE_SIZE2,
+                                                LENGTH,
+                                                WIDTH,
                                                 NET.NUM_CHANNELS])
             test_ys = np.reshape(valid.labels, [-1, OUTPUT_NODE])
 
@@ -142,13 +149,13 @@ def model_train(train, valid, pos_weight,IMAGE_SIZE2):
             print("F1 Score : %.10f" % fs)
             print("Specificity(TNR) : %.10f" % (1 - np.mean(fpr)))
             print("PR AUC : %.10f" % (auc_score_1))
-            # saver.save(sess, save_path, global_step=global_step)
+
             saver.save(sess, os.path.join(MODEL_SAVE_PATH, MODEL_NAME), global_step=global_step)
 
             print("testing!")
             reshaped_test = np.reshape(X_test, [3860,
-                                          IMAGE_SIZE1,
-                                          IMAGE_SIZE2,
+                                          LENGTH,
+                                          WIDTH,
                                           NET.NUM_CHANNELS])
             test_label = Y_test.reshape([3860,1])
 
@@ -191,17 +198,16 @@ def model_train(train, valid, pos_weight,IMAGE_SIZE2):
             print("TEST PR AUC : %.10f" % (auc_score_11))
 
 
-
 if __name__ == "__main__":
     st = time.time()
 
-    file = h5py.File('E:\\数据\\AAIA 16\\Pre_combined.h5', 'r')
+    file = h5py.File('./Pre_combined.h5', 'r')
     data = file['train_data'][:]
     label = file['train_label'][:]
     X_test = file['test_data'][:]
     Y_test = file['test_label'][:]
     file.close()
-    _, IMAGE_SIZE2 = data.shape
+    _, WIDTH = data.shape
     nb_folds = 10
 
     kfolds = StratifiedKFold(n_splits=nb_folds, shuffle=True, random_state=None)
@@ -210,7 +216,7 @@ if __name__ == "__main__":
     cv = 0
     for train, valid in kfolds.split(data, label):
         st1 = time.time()
-        cv = cv + 1
+        cv += 1
         print("{} cross validation!".format(cv))
         X, y = np.array(data[train]), np.array(label[train])
         ada = SMOTE(random_state=42)
@@ -219,18 +225,13 @@ if __name__ == "__main__":
         train_input = data_preprocess.DataSet(np.array(X_res), np.array(y_res))
         pw = np.sum(y_res == 0) / np.sum(y_res == 1)
         print('dataset shape {}'.format(Counter(y)))
-#        train_input=data_preprocess.DataSet(np.array(X),np.array(y))
-#        pw = np.sum(y == 0) / np.sum(y == 1)
+
         valid_input = data_preprocess.DataSet(np.array(data[valid]), np.array(label[valid]))
         print('positive weight:', pw)
 
-        model_train(train_input, valid_input, pos_weight=pw, IMAGE_SIZE2=IMAGE_SIZE2)
+        model_train(train_input, valid_input, pos_weight=pw, WIDTH=WIDTH)
         end1 = time.time()
-        print("{} cross validation time spend is: {}s".format(cv,(end1-st1)))
+        print("{} cross validation time spend is: {}s".format(cv, (end1-st1)))
         print("*" * 75)
 
-
-    end = time.time()
-    print("Total time spend is: {}s".format((end-st)))
-
-
+    print("Total time spend is: {}s".format((time.time()-st)))
