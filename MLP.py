@@ -1,22 +1,21 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Time    : 2017/8/10 13:32
-# @Author  : Zoe
-# @Site    :
-# @File    : MLP.py
-# @Software: PyCharm Community Edition
+"""
+Created on Thu May 31 18:52:57 2018
+@author: GY
+"""
 import tensorflow as tf
 
+
+# Hyper-parameter
 NUM_CHANNELS = 1
-# INPUT_NODE = 1222
 OUTPUT_NODE = 1
 HIDDEN1 = 32
 HIDDEN2 = 32
 HIDDEN3 = 64
 
 
-def model(input_data, keep_prob, INPUT_NODE):
-    input_data=tf.reshape(input_data,shape=[-1,INPUT_NODE])
+def model(input_data, INPUT_NODE):
+    input_data = tf.reshape(input_data, shape=[-1, INPUT_NODE])
     with tf.variable_scope("hidden-layer1"):
         weight1 = tf.get_variable("weight", [INPUT_NODE, HIDDEN1],
                                   initializer=tf.truncated_normal_initializer(stddev=0.1))
@@ -46,6 +45,6 @@ def model(input_data, keep_prob, INPUT_NODE):
                                   initializer=tf.truncated_normal_initializer(stddev=0.1))
         biases4 = tf.get_variable("bias", [OUTPUT_NODE],
                                   initializer=tf.constant_initializer(0.1))
-        fc=tf.matmul(hidden3_drop, weight4) + biases4
+        fc = tf.matmul(hidden3_drop, weight4) + biases4
         logist = tf.nn.sigmoid(tf.matmul(hidden3_drop, weight4) + biases4)
-    return fc,logist
+    return fc, logist
