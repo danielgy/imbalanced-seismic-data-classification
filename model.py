@@ -1,7 +1,16 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu May 31 18:52:57 2018
+@author: GY
+"""
 import tensorflow as tf
 from tensorflow.contrib import rnn
 import functools
-REGULARIZATION_RATE=0.01
+
+
+REGULARIZATION_RATE = 0.01
+
+
 def doublewrap(function):
     """
     A decorator decorator, allowing to use the decorator to be used without
@@ -40,22 +49,22 @@ def define_scope(function, scope=None, *args, **kwargs):
 
 
 class RNN_Model:
-    def __init__(self,inputs,labels,n_inputs=22,n_steps=24,n_hidden_units=50,n_classes = 2):
-       self.input=inputs
-       self.labels=labels
-       self.n_inputs=n_inputs
-       self.n_steps=n_steps
-       self.n_hidden_units=n_hidden_units
-       self.n_classes=n_classes
-       self.regularizer = tf.contrib.layers.l2_regularizer(REGULARIZATION_RATE)
+    def __init__(self, inputs, labels, n_inputs=22, n_steps=24, n_hidden_units=50, n_classes=2):
+        self.input = inputs
+        self.labels = labels
+        self.n_inputs = n_inputs
+        self.n_steps = n_steps
+        self.n_hidden_units = n_hidden_units
+        self.n_classes = n_classes
+        self.regularizer = tf.contrib.layers.l2_regularizer(REGULARIZATION_RATE)
 
-       self.predict
-       self.optimizer
-       self.accuracy
+        self.predict
+        self.optimizer
+        self.accuracy
 
     @define_scope
     def predict(self):
-        X=self.input
+        X = self.input
         with tf.name_scope("inlayer"):
             weights_in = tf.Variable(tf.random_uniform([self.n_inputs, self.n_hidden_units], -1.0, 1.0), name="in_w")
             b_in = tf.Variable(tf.constant(0.1, shape=[self.n_hidden_units]), name="in_bias")
@@ -66,23 +75,21 @@ class RNN_Model:
         # RNN cell
         with tf.name_scope("RNN_CELL"):
             lstm_cell = rnn.BasicLSTMCell(self.n_hidden_units)
-            # _init_state = lstm_cell.zero_state(batch_size, dtype=tf.float32)
-            # ouputs, states = tf.nn.dynamic_rnn(lstm_cell, X_in, initial_state=_init_state)
             outputs, states = tf.nn.dynamic_rnn(lstm_cell, X_in, dtype=tf.float32)
-            # print (states[1].get_shape())
-            # print (outputs.get_shape())
-        # out layer
+
+        # output layer
         with tf.name_scope('outlayer'):
             weights_out = tf.Variable(tf.random_uniform([self.n_hidden_units, self.n_classes], -1.0, 1.0), name="out_w")
             b_out = tf.Variable(tf.constant(0.1, shape=[self.n_classes]), name="out_bias")
             logist = tf.matmul(states[1], weights_out) + b_out
             tf.add_to_collection('losses', self.regularizer(weights_out))
-            # print (logist.get_shape())
-        return logist,outputs
+
+        return logist, outputs
 
     @define_scope
-    def optimizer(self,lr=0.0001):
-        cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.predict[0], labels=self.labels))+tf.add_n(tf.get_collection('losses'))
+    def optimizer(self, lr=0.0001):
+        cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.predict[0],
+                                                                      labels=self.labels))+tf.add_n(tf.get_collection('losses'))
         train_op = tf.train.AdamOptimizer(lr).minimize(cost)
         return train_op
 
@@ -90,9 +97,6 @@ class RNN_Model:
     def accuracy(self):
         correct_pred = tf.equal(tf.argmax(self.predict[0], 1), tf.argmax(self.labels, 1))
         accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
-        cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.predict[0], labels=self.labels))+tf.add_n(tf.get_collection('losses'))
-        return accuracy,cost
-
-
-
-
+        cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.predict[0],
+                                                                      labels=self.labels))+tf.add_n(tf.get_collection('losses'))
+        return accuracy, cost
