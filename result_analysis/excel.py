@@ -1,8 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu May 31 18:52:57 2018
+@author: GY
+"""
 from openpyxl.writer.excel import ExcelWriter
 from openpyxl.workbook import Workbook
 from openpyxl.reader.excel import load_workbook
 import os
 import pandas as pd
+
 
 class op():
     def __init__(self):
@@ -55,6 +61,3 @@ class op():
         rows,cols=df.shape
         for ii in range(rows):
             self.ws.append(list(df.iloc[ii,:]))
-            
-    
-
